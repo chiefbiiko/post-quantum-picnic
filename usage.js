@@ -1,17 +1,13 @@
 const pqp = require('./index')
 
-// const params = 1
-// const keys = pqp.keygen(params)
-// console.log('params:', params, 'keys:', keys)
-
 const secretkey = {
-  params: 1,
+  params: pqp.PARAMS.Picnic_L1_FS,
   data: Buffer.from('acab'),
   publickey: {
-    params: 1,
+    params: pqp.PARAMS.Picnic_L1_FS,
     plaintext: Buffer.from('deadbeefdeadbeefdeadbeefdeadbeef'),
     ciphertext: Buffer.from('deadbeefdeadbeefdeadbeefdeadbeef')
   }
 }
 const signature = pqp.sign(secretkey, Buffer.from('fraud'))
-console.log('signature:', signature)
+console.log('signature:', signature, 'length:', signature.length)

@@ -1,226 +1,288 @@
 #include <node_api.h>
 #include "picnic.h"
 
-// TODO:
-//   + make castToSecretKey and castToPublicKey standalone functions!!!!!!!!!!!
-
 #define SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#define THROW_MAYBE(env, status) \
-  if (status != 0) napi_throw_error(env, NULL, "native call failed");
+#define THROW_MAYBE(env, status, msg) \
+  if (status != 0) napi_throw_error(env, NULL, msg);
 
+// args:: params:Number
 napi_value getParamName (napi_env env, napi_callback_info info) {
   napi_status status;
 
   size_t argc = 1;
   napi_value argv[1];
   status = napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_cb_info failed");
 
   int params;
   status = napi_get_value_int32(env, argv[0], &params);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_value_int32 failed");
 
-  const char* name = picnic_get_param_name(params);
+  const char* name = picnic_get_param_name((picnic_params_t) params);
 
   napi_value paramname;
   status = napi_create_string_utf8(env, name, NAPI_AUTO_LENGTH, &paramname);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_string_utf8 failed");
 
   return paramname;
 }
 
+// args:: params:Number
+napi_value signatureSize (napi_env env, napi_callback_info info) {
+  napi_status status;
+
+  size_t argc = 1;
+  napi_value argv[1];
+  status = napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
+  THROW_MAYBE(env, status, "napi_get_cb_info failed");
+
+  int params;
+  status = napi_get_value_int32(env, argv[0], &params);
+  THROW_MAYBE(env, status, "napi_get_value_int32 failed");
+
+  size_t sig_size = picnic_signature_size((picnic_params_t) params);
+
+  napi_value signature_size;
+  status = napi_create_int32(env, (int32_t) sig_size, &signature_size);
+
+  return signature_size;
+}
+
+// args:: params:Number
 napi_value keygen (napi_env env, napi_callback_info info) {
   napi_status status;
 
   size_t argc = 1;
   napi_value argv[1];
   status = napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_cb_info failed");
 
   int params;
   status = napi_get_value_int32(env, argv[0], &params);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_value_int32 failed");
 
   picnic_publickey_t pk;
   picnic_privatekey_t sk;
-  int code = picnic_keygen(params, &pk, &sk);
-  THROW_MAYBE(env, code);
+
+  int code = picnic_keygen((picnic_params_t) params, &pk, &sk);
+  THROW_MAYBE(env, code, "picnic_keygen failed");
 
   napi_value publickey;
   status = napi_create_object(env, &publickey);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_object failed");
 
   status = napi_set_named_property(env, publickey, "params", argv[0]);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   napi_value plaintext;
   uint8_t plaintext_buffer[PICNIC_MAX_LOWMC_BLOCK_SIZE];
+
   status = napi_create_buffer_copy(env, PICNIC_MAX_LOWMC_BLOCK_SIZE,
     (void*) pk.plaintext, (void**) &plaintext_buffer, &plaintext);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_buffer_copy failed");
 
   status = napi_set_named_property(env, publickey, "plaintext", plaintext);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   napi_value ciphertext;
   uint8_t ciphertext_buffer[PICNIC_MAX_LOWMC_BLOCK_SIZE];
+
   status = napi_create_buffer_copy(env, PICNIC_MAX_LOWMC_BLOCK_SIZE,
     (void*) pk.ciphertext, (void**) &ciphertext_buffer, &ciphertext);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_buffer_copy failed");
 
   status = napi_set_named_property(env, publickey, "ciphertext", ciphertext);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
-  napi_value secretkey;
-  status = napi_create_object(env, &secretkey);
-  THROW_MAYBE(env, status);
+  napi_value privatekey;
+  status = napi_create_object(env, &privatekey);
+  THROW_MAYBE(env, status, "napi_create_object failed");
 
-  status = napi_set_named_property(env, secretkey, "params", argv[0]);
-  THROW_MAYBE(env, status);
+  status = napi_set_named_property(env, privatekey, "params", argv[0]);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   napi_value data;
   uint8_t data_buffer[PICNIC_MAX_LOWMC_BLOCK_SIZE];
+
   status = napi_create_buffer_copy(env, PICNIC_MAX_LOWMC_BLOCK_SIZE,
     (void*) sk.data, (void**) &data_buffer, &data);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_buffer_copy failed");
 
-  status = napi_set_named_property(env, secretkey, "data", data);
-  THROW_MAYBE(env, status);
+  status = napi_set_named_property(env, privatekey, "data", data);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
-  status = napi_set_named_property(env, secretkey, "publickey", publickey);
-  THROW_MAYBE(env, status);
+  status = napi_set_named_property(env, privatekey, "publickey", publickey);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   napi_value keys;
   status = napi_create_object(env, &keys);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_object failed");
 
   status = napi_set_named_property(env, keys, "publickey", publickey);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
-  status = napi_set_named_property(env, keys, "secretkey", secretkey);
-  THROW_MAYBE(env, status);
+  status = napi_set_named_property(env, keys, "privatekey", privatekey);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   return keys;
 }
 
+// args:: privatekey:Object, message:Buffer
 napi_value sign_wrapper (napi_env env, napi_callback_info info) {
   napi_status status;
-  // secretkey:Object, message:Buffer
-  size_t argc = 2; // ...deriving: msg_len, sig, sig_len
+
+  size_t argc = 2;
   napi_value argv[2];
   status = napi_get_cb_info(env, info, &argc, argv, NULL, NULL);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_cb_info failed");
 
   // getting napi_value argv[0] as picnic_privatekey_t sk
-  napi_value secretkey_params;
-  status = napi_get_named_property(env, argv[0], "params", &secretkey_params);
-  THROW_MAYBE(env, status);
-  int sk_params;
-  status = napi_get_value_int32(env, secretkey_params, &sk_params);
-  THROW_MAYBE(env, status);
+  napi_value privatekey_params;
+  status = napi_get_named_property(env, argv[0], "params", &privatekey_params);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
 
-  napi_value secretkey_data;
-  status = napi_get_named_property(env, argv[0], "data", &secretkey_data);
-  THROW_MAYBE(env, status);
+  int sk_params;
+  status = napi_get_value_int32(env, privatekey_params, &sk_params);
+  THROW_MAYBE(env, status, "napi_get_value_int32 failed");
+
+  napi_value privatekey_data;
+  status = napi_get_named_property(env, argv[0], "data", &privatekey_data);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
+
   uint8_t sk_data[PICNIC_MAX_LOWMC_BLOCK_SIZE];
   size_t sk_data_len;
-  status = napi_get_buffer_info(env, secretkey_data, (void**) &sk_data, &sk_data_len);
-  THROW_MAYBE(env, status);
 
-  napi_value secretkey_publickey;
-  status = napi_get_named_property(env, argv[0], "publickey", &secretkey_publickey);
-  THROW_MAYBE(env, status);
+  status = napi_get_buffer_info(env, privatekey_data, (void**) &sk_data,
+    &sk_data_len);
+  THROW_MAYBE(env, status, "napi_get_buffer_info failed");
 
-  napi_value secretkey_publickey_params;
-  status = napi_get_named_property(env, secretkey_publickey, "params",
-    &secretkey_publickey_params);
-  THROW_MAYBE(env, status);
+  napi_value privatekey_publickey;
+  status = napi_get_named_property(env, argv[0], "publickey",
+    &privatekey_publickey);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
+
+  napi_value privatekey_publickey_params;
+  status = napi_get_named_property(env, privatekey_publickey, "params",
+    &privatekey_publickey_params);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
+
   int sk_pk_params;
-  status = napi_get_value_int32(env, secretkey_publickey_params,
+  status = napi_get_value_int32(env, privatekey_publickey_params,
     &sk_pk_params);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_value_int32 failed");
 
-  napi_value secretkey_publickey_plaintext;
-  status = napi_get_named_property(env, secretkey_publickey, "plaintext",
-    &secretkey_publickey_plaintext);
-  THROW_MAYBE(env, status);
+  napi_value privatekey_publickey_plaintext;
+  status = napi_get_named_property(env, privatekey_publickey, "plaintext",
+    &privatekey_publickey_plaintext);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
+
   uint8_t sk_pk_plaintext[PICNIC_MAX_LOWMC_BLOCK_SIZE];
   size_t sk_pk_plaintext_len;
-  status = napi_get_buffer_info(env, secretkey_publickey_plaintext,
-    (void**) &sk_pk_plaintext, &sk_pk_plaintext_len);
-  THROW_MAYBE(env, status);
 
-  napi_value secretkey_publickey_ciphertext;
-  status = napi_get_named_property(env, secretkey_publickey, "ciphertext",
-    &secretkey_publickey_ciphertext);
-  THROW_MAYBE(env, status);
+  status = napi_get_buffer_info(env, privatekey_publickey_plaintext,
+    (void**) &sk_pk_plaintext, &sk_pk_plaintext_len);
+  THROW_MAYBE(env, status, "napi_get_buffer_info failed");
+
+  napi_value privatekey_publickey_ciphertext;
+  status = napi_get_named_property(env, privatekey_publickey, "ciphertext",
+    &privatekey_publickey_ciphertext);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
+
   uint8_t sk_pk_ciphertext[PICNIC_MAX_LOWMC_BLOCK_SIZE];
   size_t sk_pk_ciphertext_len;
-  status = napi_get_buffer_info(env, secretkey_publickey_ciphertext,
+
+  status = napi_get_buffer_info(env, privatekey_publickey_ciphertext,
     (void**) &sk_pk_ciphertext, &sk_pk_ciphertext_len);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_buffer_info failed");
 
   picnic_publickey_t sk_pk = {
-    .params = sk_pk_params,
+    .params = (picnic_params_t) sk_pk_params,
     .plaintext = *sk_pk_plaintext,
     .ciphertext = *sk_pk_ciphertext
   };
 
   picnic_privatekey_t sk = {
-    .params = sk_params,
+    .params = (picnic_params_t) sk_params,
     .data = *sk_data,
     .pk = sk_pk
   };
 
-  // getting napi_value argv[1] as uint8_t msg[]
+  // getting napi_value argv[1] as uint8_t msg[], its length first
+  napi_value message_length;
+  status = napi_get_named_property(env, argv[1], "length", &message_length);
+  THROW_MAYBE(env, status, "napi_get_named_property failed");
+
+  int msg_length;
+  status = napi_get_value_int32(env, message_length, &msg_length);
+  THROW_MAYBE(env, status, "napi_get_value_int32 failed");
+
   size_t msg_len;
-  uint8_t msg[PICNIC_MAX_LOWMC_BLOCK_SIZE];
+  void* msg = malloc(msg_length * sizeof(uint8_t));
+  if (msg == NULL) napi_throw_error(env, NULL, "malloc failed");
+
   status = napi_get_buffer_info(env, argv[1], (void**) &msg, &msg_len);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_get_buffer_info failed");
 
   size_t req_sig_len = picnic_signature_size(sk.params);
-  uint8_t* sig = malloc(req_sig_len * sizeof(uint8_t));
   size_t sig_len;
 
-  // FAILS!!! TODO: FIX & get the signature!!!
-  // int code = picnic_sign(&sk, msg, msg_len, sig, &sig_len);
-  // THROW_MAYBE(env, code);
+  uint8_t* sig = (uint8_t*) malloc(req_sig_len * sizeof(uint8_t));
+  if (sig == NULL) napi_throw_error(env, NULL, "malloc failed");
 
-  // TODO: pass the signature back to node!!!!
+  // signing
+  int code = picnic_sign(&sk, msg, msg_len, sig, &sig_len);
+  THROW_MAYBE(env, code, "picnic_sign failed");
 
+  // passing the signature back to node
+  napi_value signature;
+  void* signature_buffer = malloc(sig_len * sizeof(uint8_t));
+  if (signature_buffer == NULL) napi_throw_error(env, NULL, "malloc failed");
 
-  free(sig);
-  return secretkey_publickey;
+  status = napi_create_buffer_copy(env, sig_len, (void*) sig,
+    (void**) &signature_buffer, &signature);
+  THROW_MAYBE(env, status, "napi_create_buffer_copy failed");
+
+  free(sig); // seems I cant free msg and signature_buffer
+
+  return signature;
 }
 
 napi_value init (napi_env env, napi_value exports) {
   napi_status status;
 
-  napi_value keygen_export;
-  status = napi_create_function(env, NULL, 0, keygen, NULL, &keygen_export);
-  THROW_MAYBE(env, status);
-
-  status = napi_set_named_property(env, exports, "keygen", keygen_export);
-  THROW_MAYBE(env, status);
-
   napi_value getParamName_export;
   status = napi_create_function(env, NULL, 0, getParamName, NULL,
     &getParamName_export);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_function failed");
 
   status = napi_set_named_property(env, exports, "getParamName",
     getParamName_export);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
+
+  napi_value signatureSize_export;
+  status = napi_create_function(env, NULL, 0, signatureSize, NULL,
+    &signatureSize_export);
+  THROW_MAYBE(env, status, "napi_create_function failed");
+
+  status = napi_set_named_property(env, exports, "signatureSize",
+    signatureSize_export);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
+
+  napi_value keygen_export;
+  status = napi_create_function(env, NULL, 0, keygen, NULL, &keygen_export);
+  THROW_MAYBE(env, status, "napi_create_function failed");
+
+  status = napi_set_named_property(env, exports, "keygen", keygen_export);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   napi_value sign_wrapper_export;
   status = napi_create_function(env, NULL, 0, sign_wrapper, NULL,
     &sign_wrapper_export);
-  THROW_MAYBE(env, status);
+  THROW_MAYBE(env, status, "napi_create_function failed");
 
-  status = napi_set_named_property(env, exports, "sign",
-    sign_wrapper_export);
-  THROW_MAYBE(env, status);
+  status = napi_set_named_property(env, exports, "sign", sign_wrapper_export);
+  THROW_MAYBE(env, status, "napi_set_named_property failed");
 
   // public picnic API surface...
   // ...

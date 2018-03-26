@@ -18,6 +18,7 @@ const PARAMS = Object.freeze({
 module.exports = {
   PARAMS: PARAMS,
   getParamName: napi_exports.getParamName,
+  signatureSize: napi_exports.signatureSize,
   keygen: napi_exports.keygen,
   sign: napi_exports.sign
 }
