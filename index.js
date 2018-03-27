@@ -20,5 +20,6 @@ module.exports = {
   getParamName: napi_exports.getParamName,
   signatureSize: napi_exports.signatureSize,
   keygen: napi_exports.keygen,
-  sign: napi_exports.sign
+  sign: napi_exports.sign,
+  verify: napi_exports.verify
 }

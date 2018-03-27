@@ -9,5 +9,7 @@ const secretkey = {
     ciphertext: Buffer.from('deadbeefdeadbeefdeadbeefdeadbeef')
   }
 }
+
 const signature = pqp.sign(secretkey, Buffer.from('fraud'))
+
 console.log('signature:', signature, 'length:', signature.length)
