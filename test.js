@@ -76,6 +76,10 @@ tape('pqp.sign', function (t) {
 tape.only('pqp.verify', function (t) {
   const keys = pqp.keygen(pqp.PARAMS.Picnic_L1_FS)
   const msg = Buffer.from('fraud')
+  // DEBUG START
+  // console.log('privatekey::', keys.privatekey)
+  console.log('publickey::', keys.publickey)
+  // DEBUG END
   const signature = pqp.sign(keys.privatekey, msg)
   const x = pqp.verify(keys.publickey, msg, signature)
   t.is(x, 0, 'verified')
