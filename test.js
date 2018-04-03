@@ -67,6 +67,7 @@ tape('pqp.keygen', function (t) {
 
 tape('pqp.sign', function (t) {
   const keys = pqp.keygen(pqp.PARAMS.Picnic_L1_FS)
+  console.log(keys)
   const signature = pqp.sign(keys.privatekey, Buffer.from('fraud'))
   t.ok(Buffer.isBuffer(signature), 'sig is buffer')
   t.ok(signature.length >= 30000 && signature.length <= 34000, 'size ~3x000')
@@ -76,11 +77,12 @@ tape('pqp.sign', function (t) {
 tape.only('pqp.verify', function (t) {
   const keys = pqp.keygen(pqp.PARAMS.Picnic_L1_FS)
   const msg = Buffer.from('fraud')
+  const signature = pqp.sign(keys.privatekey, msg)
   // DEBUG START
   // console.log('privatekey::', keys.privatekey)
-  console.log('publickey::', keys.publickey)
+  // console.log('publickey::', keys.publickey)
+  // console.log('signature::', signature)
   // DEBUG END
-  const signature = pqp.sign(keys.privatekey, msg)
   const x = pqp.verify(keys.publickey, msg, signature)
   t.is(x, 0, 'verified')
   t.end()
