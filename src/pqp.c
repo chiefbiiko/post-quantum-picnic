@@ -196,17 +196,30 @@ napi_value sign_wrapper (napi_env env, napi_callback_info info) {
     (void**) &sk_pk_ciphertext, &sk_pk_ciphertext_len);
   THROW_MAYBE(env, status, "napi_get_buffer_info failed");
 
+  // picnic_publickey_t sk_pk = {
+  //   .params = (picnic_params_t) sk_pk_params,
+  //   .plaintext = *sk_pk_plaintext,
+  //   .ciphertext = *sk_pk_ciphertext
+  // };
   picnic_publickey_t sk_pk = {
-    .params = (picnic_params_t) sk_pk_params,
-    .plaintext = *sk_pk_plaintext,
-    .ciphertext = *sk_pk_ciphertext
+    .params = (picnic_params_t) sk_pk_params
   };
+  memcpy((void*) sk_pk.plaintext, (void*) sk_pk_plaintext,
+    (size_t) PICNIC_MAX_LOWMC_BLOCK_SIZE);
+  memcpy((void*) sk_pk.ciphertext, (void*) sk_pk_ciphertext,
+    (size_t) PICNIC_MAX_LOWMC_BLOCK_SIZE);
 
+  // picnic_privatekey_t sk = {
+  //   .params = (picnic_params_t) sk_params,
+  //   .data = *sk_data,
+  //   .pk = sk_pk
+  // };
   picnic_privatekey_t sk = {
     .params = (picnic_params_t) sk_params,
-    .data = *sk_data,
     .pk = sk_pk
   };
+  memcpy((void*) sk.data, (void*) sk_data,
+    (size_t) PICNIC_MAX_LOWMC_BLOCK_SIZE);
 
   // getting napi_value argv[1] as uint8_t msg[], its length first
   napi_value message_length;
@@ -298,7 +311,9 @@ napi_value verify_wrapper (napi_env env, napi_callback_info info) {
   //   .plaintext = *pk_plaintext,
   //   .ciphertext = *pk_ciphertext
   // };
-  picnic_publickey_t pk = { .params = (picnic_params_t) pk_params };
+  picnic_publickey_t pk = {
+    .params = (picnic_params_t) pk_params
+  };
   memcpy((void*) pk.plaintext, (void*) pk_plaintext,
     (size_t) PICNIC_MAX_LOWMC_BLOCK_SIZE);
   memcpy((void*) pk.ciphertext, (void*) pk_ciphertext,
