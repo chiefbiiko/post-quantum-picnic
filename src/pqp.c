@@ -371,6 +371,10 @@ napi_value verify_wrapper (napi_env env, napi_callback_info info) {
   for (size_t i = 0; i < 250; i++) {
     printf("%d ", (int) sig[i]);
   }
+  printf("\nsignature tail: ");
+  for (size_t i = sig_len - 250; i < sig_len; i++) {
+    printf("%d ", (int) sig[i]);
+  }
   printf("\nmsg_len: %d", (int) msg_len);
   printf("\nsig_len: %d", (int) sig_len);
   printf("\n");
